@@ -327,6 +327,7 @@ import org.elasticsearch.xpack.ml.dataframe.process.NativeMemoryUsageEstimationP
 import org.elasticsearch.xpack.ml.dataframe.process.results.AnalyticsResult;
 import org.elasticsearch.xpack.ml.dataframe.process.results.MemoryUsageEstimationResult;
 import org.elasticsearch.xpack.ml.inference.TrainedModelStatsService;
+import org.elasticsearch.xpack.ml.inference.adaptiveallocations.AdaptiveAllocationsScalerService;
 import org.elasticsearch.xpack.ml.inference.assignment.TrainedModelAssignmentClusterService;
 import org.elasticsearch.xpack.ml.inference.assignment.TrainedModelAssignmentService;
 import org.elasticsearch.xpack.ml.inference.deployment.DeploymentManager;
@@ -1277,13 +1278,21 @@ public class MachineLearning extends Plugin
             new MlAutoscalingDeciderService(memoryTracker, settings, nodeAvailabilityZoneMapper, clusterService)
         );
 
-        MlInitializationService mlInitializationService = new MlInitializationService(
-            settings,
+        AdaptiveAllocationsScalerService adaptiveAllocationsScalerService = new AdaptiveAllocationsScalerService(
             threadPool,
             clusterService,
             client,
             inferenceAuditor,
             telemetryProvider.getMeterRegistry(),
+            machineLearningExtension.get().isNlpEnabled()
+        );
+
+        MlInitializationService mlInitializationService = new MlInitializationService(
+            settings,
+            threadPool,
+            clusterService,
+            client,
+            adaptiveAllocationsScalerService,
             mlAssignmentNotifier,
             machineLearningExtension.get().isAnomalyDetectionEnabled(),
             machineLearningExtension.get().isDataFrameAnalyticsEnabled(),
@@ -1309,6 +1318,7 @@ public class MachineLearning extends Plugin
             jobManagerHolder,
             autodetectProcessManager,
             mlInitializationService,
+            adaptiveAllocationsScalerService,
             jobDataCountsPersister,
             datafeedRunner,
             datafeedManager,
